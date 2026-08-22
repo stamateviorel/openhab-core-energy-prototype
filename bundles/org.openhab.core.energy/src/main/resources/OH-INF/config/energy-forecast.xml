@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config-description:config-descriptions
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:config-description="https://openhab.org/schemas/config-description/v1.0.0"
+	xsi:schemaLocation="https://openhab.org/schemas/config-description/v1.0.0
+		https://openhab.org/schemas/config-description-1.0.0.xsd">
+
+	<config-description uri="system:energy-forecast">
+		<parameter name="sources" type="text" multiple="true">
+			<label>Forecast Sources</label>
+			<description>Which source answers for which kind of forecast, written as role=source, for example
+				solar-production=solarforecast. Roles are solar-production, temperature, cloud-cover, wind and
+				heating-demand.
+				Anything not named here is answered by the highest-ranked installed source.</description>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="staleAfter" type="integer" unit="h" min="1">
+			<label>Forecast Maximum Age</label>
+			<description>How old the newest run of a forecast may be before the system reports that it is planning on
+				something
+				old. Planning continues on what is there either way. There is no default: how long a site is
+				happy to plan on
+				yesterday's weather is a property of the site.</description>
+		</parameter>
+	</config-description>
+
+</config-description:config-descriptions>

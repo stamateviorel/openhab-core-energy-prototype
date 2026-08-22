@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config-description:config-descriptions
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:config-description="https://openhab.org/schemas/config-description/v1.0.0"
+	xsi:schemaLocation="https://openhab.org/schemas/config-description/v1.0.0
+		https://openhab.org/schemas/config-description-1.0.0.xsd">
+
+	<config-description uri="system:energy-forecast-store">
+		<parameter name="persistenceService" type="text">
+			<label>Persistence Service</label>
+			<description>Which persistence service holds the prediction series. Empty uses the default one. It has to be
+				a service
+				that can change what it already stored: influxdb, inmemory, jdbc or mongodb. A service that
+				cannot is refused rather
+				than used, because a prediction series that can only be appended to is not the
+				one the system needs.</description>
+		</parameter>
+		<parameter name="series" type="text" multiple="true">
+			<label>Prediction Series</label>
+			<description>Which Item carries which kind of prediction, written as role=item, for example
+				solar-production=PV_Forecast. Each one becomes a forecast source, so a stored baseline is used whenever
+				no live
+				service has anything better.</description>
+		</parameter>
+		<parameter name="capSeries" type="text" multiple="true">
+			<label>Constraint Series</label>
+			<description>Which Item holds the caps of which prediction Item, written as prediction=cap, for example
+				PV_Forecast=PV_Forecast_Cap. Only used when caps are kept out of the prediction.</description>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="writePolicy" type="text">
+			<label>Write Policy</label>
+			<description>What happens when a forecast refresh lands on an entry a cap was written onto. This is
+				deliberately
+				unset: the requirement says a refresh replaces what was there, and the cap scenario says
+				those entries hold the
+				capped value, and nothing in the specification says which wins. Left unset, the
+				newest write wins and the overwritten
+				cap is reported.</description>
+			<options>
+				<option value="fresh-overwrites-old">Newest write wins, and say so</option>
+				<option value="reapply-caps">Put the cap back after every refresh</option>
+				<option value="writer-precedence">Follow the layer order below</option>
+				<option value="cap-at-read-time">Keep caps in their own series and apply them when reading</option>
+			</options>
+			<limitToOptions>true</limitToOptions>
+		</parameter>
+		<parameter name="layerPrecedence" type="text" multiple="true">
+			<label>Layer Order</label>
+			<description>Which writer outranks which, written as layer=rank with the higher rank winning, for example
+				cap=20.
+				Layers are baseline, forecast, cap and learned. Only used by the layer-order write policy, which
+				refuses to write at
+				all until this is declared.</description>
+			<advanced>true</advanced>
+		</parameter>
+	</config-description>
+
+	<config-description uri="system:energy-demand">
+		<parameter name="demandItem" type="text">
+			<label>Demand Item</label>
+			<description>The Item the derived heating-demand series is published to. Empty publishes nothing: the
+				derived series
+				is still readable by the energy engine, it simply is not written anywhere.</description>
+		</parameter>
+		<parameter name="heatLoss" type="decimal" min="0">
+			<label>Heat Loss</label>
+			<description>How much heating power the building needs per degree of difference to the outside, in kilowatts per
+				kelvin. There is no
+				default,
+				because this is a property of the building. Until it is declared, no heating demand is
+				derived
+				at all and the system
+				reports that rather than deriving a number nobody chose.</description>
+		</parameter>
+		<parameter name="baseTemperature" type="decimal" unit="Cel">
+			<label>Base Temperature</label>
+			<description>The outdoor temperature below which the building needs heating.</description>
+		</parameter>
+		<parameter name="solarGain" type="decimal" min="0">
+			<label>Solar Gain</label>
+			<description>How much heating need one kilowatt-hour of the solar forecast displaces. It stands for the
+				glazing and
+				the orientation together, which is why it is useful on a site with no solar panels at all.
+				Undeclared means a solar
+				forecast changes nothing.</description>
+		</parameter>
+		<parameter name="preheatHorizon" type="decimal" unit="h" min="0">
+			<label>Pre-heating Horizon</label>
+			<description>How far ahead to look for a temperature drop worth pre-heating for.</description>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="preheatDrop" type="decimal" unit="K" min="0">
+			<label>Pre-heating Drop</label>
+			<description>How much colder the coming hours have to be before demand is pulled forward.</description>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="preheatShare" type="decimal" min="0" max="1">
+			<label>Pre-heating Share</label>
+			<description>How much of the coming extra need is pulled into the warmer hours, between 0 and 1.</description>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="preheatModel" type="text">
+			<label>Pre-heating Bookkeeping</label>
+			<description>Whether the energy pulled forward is added to the day or taken out of the hours it was
+				pre-heating for.
+				The specification asks for the rise and does not say which, so there is no default and
+				pre-heating stays off until
+				all four of these are declared.</description>
+			<options>
+				<option value="additive">Add it to the day</option>
+				<option value="redistributed">Move it within the day</option>
+			</options>
+			<limitToOptions>true</limitToOptions>
+			<advanced>true</advanced>
+		</parameter>
+	</config-description>
+
+</config-description:config-descriptions>

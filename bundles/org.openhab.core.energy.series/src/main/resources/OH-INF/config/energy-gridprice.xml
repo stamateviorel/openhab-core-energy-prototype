@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config-description:config-descriptions
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:config-description="https://openhab.org/schemas/config-description/v1.0.0"
+	xsi:schemaLocation="https://openhab.org/schemas/config-description/v1.0.0
+		https://openhab.org/schemas/config-description-1.0.0.xsd">
+
+	<config-description uri="system:energy-gridprice">
+		<parameter name="item" type="text">
+			<context>item</context>
+			<label>Price Item</label>
+			<description>The item carrying the raw future price series, as a binding publishes it. Nothing is read
+				until this is
+				set.</description>
+		</parameter>
+		<parameter name="persistenceService" type="text">
+			<label>Persistence Service</label>
+			<description>Which persistence service holds the item's future series. Empty uses the default one.</description>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="role" type="text">
+			<label>Price Role</label>
+			<description>What the resulting series is, which is how the price plane knows where to use it.</description>
+			<options>
+				<option value="spot">Market or day-ahead price</option>
+				<option value="gridTariff">Grid transport tariff</option>
+				<option value="taxesAndFees">Taxes, levies and fixed fees</option>
+				<option value="feedIn">Price paid for energy delivered to the grid</option>
+			</options>
+			<limitToOptions>true</limitToOptions>
+			<default>spot</default>
+		</parameter>
+		<parameter name="currency" type="text" required="true">
+			<label>Currency</label>
+			<description>The three-letter code the raw numbers are in. There is no default: an item carries a number
+				and says
+				nothing about its denomination, and a guessed one reaches you as a price you are about to act
+				on. Cents are not a
+				currency and cannot be used here; carry the price in whole units and scale it for
+				display.</description>
+		</parameter>
+		<parameter name="energyUnit" type="text">
+			<label>Raw Energy Unit</label>
+			<description>The unit of energy the raw numbers are per.</description>
+			<options>
+				<option value="kWh">Per kilowatt hour</option>
+				<option value="MWh">Per megawatt hour</option>
+			</options>
+			<limitToOptions>true</limitToOptions>
+			<default>kWh</default>
+		</parameter>
+		<parameter name="marketZone" type="text" required="true">
+			<label>Market Time Zone</label>
+			<description>The time zone of the market that produced the prices, which is what names their delivery day.
+				It is not
+				your own zone, and it is never inferred from it or from UTC - so there is no default, and
+				nothing is read until you
+				name one. A central-European day runs 23:00 to 23:00 in UTC, and reading it
+				as a UTC day names it a day early.</description>
+		</parameter>
+		<parameter name="horizonHours" type="integer" unit="h" min="1">
+			<label>Horizon</label>
+			<description>How far ahead to read the series.</description>
+			<default>48</default>
+		</parameter>
+		<parameter name="pipeline" type="text" multiple="true">
+			<label>Adjustment Order</label>
+			<description>The adjustments to apply, in the order your own bill applies them, for example fee=0.0279,
+				vat=24. There
+				is deliberately no fixed order: value-added tax on a price that already carries a
+				transfer fee is a different number
+				from a fee added afterwards.</description>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="vatPercent" type="decimal" min="-100">
+			<label>VAT</label>
+			<description>The tax rate to add, as the percentage your bill states.</description>
+		</parameter>
+		<parameter name="fixedFee" type="decimal">
+			<label>Fixed Fee</label>
+			<description>An amount added to every slot, in the currency above per the raw energy unit.</description>
+		</parameter>
+		<parameter name="scale" type="decimal">
+			<label>Scale Factor</label>
+			<description>A plain multiplier, for a source publishing a bare number in a unit nothing can name.</description>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="targetEnergyUnit" type="text">
+			<label>Effective Energy Unit</label>
+			<description>The unit of energy the effective prices should be per.</description>
+			<options>
+				<option value="kWh">Per kilowatt hour</option>
+				<option value="MWh">Per megawatt hour</option>
+			</options>
+			<limitToOptions>true</limitToOptions>
+		</parameter>
+		<parameter name="tariffPeriods" type="text" multiple="true">
+			<label>Tariff Periods</label>
+			<description>Conditional tariff windows, written id;months;days;from;to;amount, for example
+				winter-day;DEC,JAN,FEB;MON,TUE,WED,THU,FRI,SAT;07:00;22:00;0.06. Leave months or days empty for any.
+				The times are
+				read in your own zone, not the market's.</description>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="tariffDefault" type="decimal">
+			<label>Tariff Outside Every Period</label>
+			<description>What the tariff adds where no period applies.</description>
+			<advanced>true</advanced>
+		</parameter>
+	</config-description>
+
+</config-description:config-descriptions>

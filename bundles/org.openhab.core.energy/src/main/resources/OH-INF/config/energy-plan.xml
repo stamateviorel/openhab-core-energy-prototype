@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config-description:config-descriptions
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:config-description="https://openhab.org/schemas/config-description/v1.0.0"
+	xsi:schemaLocation="https://openhab.org/schemas/config-description/v1.0.0
+		https://openhab.org/schemas/config-description-1.0.0.xsd">
+
+	<config-description uri="system:energy-plan">
+		<parameter name="refreshInterval" type="integer" unit="s" min="1">
+			<label>Plan Refresh Interval</label>
+			<description>How often to re-derive the level plan from the current prices, forecasts and objective. There is
+				no
+				default. Left empty, the plan is re-derived only when the configuration changes, which means new
+				day-ahead prices
+				published by an already-installed source are not picked up until something else changes;
+				the system reports that this
+				is the case rather than leaving it to be discovered.</description>
+		</parameter>
+		<parameter name="surplusForecast" type="boolean">
+			<label>Assemble A Surplus Forecast</label>
+			<description>Whether to build a forecast of future surplus for the objectives that rank on one, by netting the
+				solar
+				production forecast against the heating demand forecast. Off by default because no requirement
+				defines this quantity:
+				with no demand forecast installed the result describes production rather than
+				surplus, and the system says so rather
+				than presenting an upper bound as a surplus.</description>
+			<default>false</default>
+			<advanced>true</advanced>
+		</parameter>
+	</config-description>
+
+</config-description:config-descriptions>

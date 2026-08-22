@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config-description:config-descriptions
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:config-description="https://openhab.org/schemas/config-description/v1.0.0"
+	xsi:schemaLocation="https://openhab.org/schemas/config-description/v1.0.0
+		https://openhab.org/schemas/config-description-1.0.0.xsd">
+
+	<config-description uri="system:energy-price">
+		<parameter name="components" type="text" multiple="true">
+			<label>Price Components</label>
+			<description>What your effective consumption price is made of, in the order it is summed, for example spot,
+				gridTariff and taxesAndFees. Empty composes nothing: there is no shipped default, because a wholesale
+				price presented
+				as a consumer price would be wrong on every bill.</description>
+			<options>
+				<option value="spot">Market or day-ahead price</option>
+				<option value="gridTariff">Grid transport tariff</option>
+				<option value="taxesAndFees">Taxes, levies and fixed fees</option>
+				<option value="other">Something the other components do not describe</option>
+			</options>
+			<limitToOptions>true</limitToOptions>
+		</parameter>
+		<parameter name="preferredSources" type="text" multiple="true">
+			<label>Preferred Price Sources</label>
+			<description>Which source to prefer for a price component, written as role:sourceId, for example
+				spot:entsoe. Empty
+				prefers the highest ranked source of each role.</description>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="alignment" type="text">
+			<label>Component Alignment</label>
+			<description>How components whose slots do not line up are brought onto one set of slots before they are
+				summed.
+				Refining keeps every value over exactly the time it was in force; resampling gives a regular
+				series; refusing tells
+				you your inputs disagree instead of composing them.</description>
+			<options>
+				<option value="union">Refine to every boundary</option>
+				<option value="finest">Resample onto the finest component</option>
+				<option value="strict">Refuse anything not already aligned</option>
+			</options>
+			<limitToOptions>true</limitToOptions>
+			<default>union</default>
+			<advanced>true</advanced>
+		</parameter>
+	</config-description>
+
+</config-description:config-descriptions>
