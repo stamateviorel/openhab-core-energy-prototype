@@ -449,23 +449,28 @@ bundles may write" is the load-bearing fact of this stage, and it changed.
 - **Nothing has been verified against a real market feed.** Every price in every test is either the
   corpus fixture or a hand-built series. The generic provider has been exercised against a fake
   persistence service, not against a live ENTSO-E binding.
-- **Two bundles now meet in one process; the Item end of the chain still does not.** Superseded in
-  part on 2026-08-29 by `itests/org.openhab.core.energy.tests`, an OSGi integration test that starts
-  all four bundles in a real framework and asserts that a source registered *only* through the
-  service registry, with its composition set *only* through ConfigAdmin, arrives as a level plan on
-  the level plane. Four tests, and they establish what no unit test could: the bundles resolve, reach
-  ACTIVE, and find each other.
+- **The chain now runs in one process.** Superseded on 2026-08-29 by
+  `itests/org.openhab.core.energy.tests`, an OSGi integration test that starts all four bundles in a
+  real framework. **Five tests, and they establish what no unit test could**: the bundles resolve and
+  reach ACTIVE, they find each other through the service registry, and
+  `Item → persistence → provider → registry → coordinator → level plan` runs end to end — an Item's
+  future prices in a persistence service, read by the `series` bundle's Item-backed source, composed
+  by the registry in the engine bundle, installed as a plan on the level plane. Nothing in that test
+  is wired by hand; the only connection between the parts is OSGi.
 
-  What is still not covered is the front of the chain. The itest registers a synthetic
-  `EnergyPriceSource` rather than driving the `series` bundle's Item-backed reader, so
-  "Item → persistence → provider" has still never run. The half that was pure assumption — service
-  registration and configuration across bundle boundaries — is no longer assumed.
+  The persistence service is a test implementation, because core ships no store — rrd4j and InfluxDB
+  live in openhab-addons — but it is a real `QueryablePersistenceService` discovered through the real
+  `PersistenceServiceRegistry`, which is the extension point an actual store plugs into. What remains
+  unverified is therefore the market feed itself (§8 above), not the wiring.
 
-  Running it also produced a finding worth stating plainly: on a fresh framework an installed price
-  source derives **nothing**, because core ships no composition. The coordinator reports
-  `PRICE_COMPOSITION_FAILED` and `NO_SERIES_TO_DERIVE_FROM` rather than inventing a price, which is
-  the intended contract — but it means "install a price source" is not by itself a working
-  configuration, and that had never been demonstrated end to end. It now has its own test.
+  Two findings came out of writing it. **On a fresh framework an installed price source derives
+  nothing**, because core ships no composition: the coordinator reports `PRICE_COMPOSITION_FAILED`
+  and `NO_SERIES_TO_DERIVE_FROM` rather than inventing a price. That is the contract working as
+  intended, but it means "install a price source" is not by itself a working configuration, and it
+  had never been shown end to end. It has its own test now. And the first version of the suite passed
+  or failed **depending on the order the tests ran in** — the framework and its ConfigAdmin state are
+  shared across a class — so each test now tears its own configuration and services down again.
+
 - **`RankedSlotsSelection` ignores the load curve** (§4.2), documented and defensible, but it does
   mean a shaped interruptible load gets a flat-ranked answer.
 

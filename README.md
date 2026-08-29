@@ -23,7 +23,7 @@ Context and discussion: [openhab-core#3478](https://github.com/openhab/openhab-c
 | `org.openhab.core.energy.forecast.store` | persistence-layered forecast store | 24 |
 | `org.openhab.core.energy.publish` | Item and status publication | 16 |
 
-**601 unit tests plus 4 OSGi integration tests, 0 failures.** Checkstyle, PMD and SpotBugs report
+**601 unit tests plus 5 OSGi integration tests, 0 failures.** Checkstyle, PMD and SpotBugs report
 nothing on any of the four; javadoc is warning-free. Every dependency is an `openhab-core` artifact — nothing outside
 openHAB's default set, and no HTTP or WebSocket client anywhere, because the source SPI is
 pull-only and core fetches no energy data itself.
@@ -51,22 +51,29 @@ event is not a write.
 
 ## It runs
 
-`itests/org.openhab.core.energy.tests` starts all four bundles in a real OSGi framework and asserts
-that they resolve, reach ACTIVE, and find each other. The point of it is the one property no unit
-test can reach: a price source registered *only* through the service registry, with its composition
-set *only* through ConfigAdmin, coming out the far end as a level plan on the level plane. Nothing
-in that test is wired by hand.
+`itests/org.openhab.core.energy.tests` starts all four bundles in a real OSGi framework. **Five
+tests**, and they establish what no unit test can:
 
-It also pins a behaviour that had never been demonstrated end to end: **on a fresh framework, an
-installed price source derives nothing.** Core ships no composition, so the coordinator reports
+- every bundle resolves and reaches `ACTIVE`
+- they find each other through the service registry
+- **the whole chain runs end to end** — `Item → persistence → provider → registry → coordinator →
+  level plan`. An Item's future prices sit in a persistence service, the `series` bundle's
+  Item-backed source reads them, the registry in the engine bundle composes them, and the result is
+  installed as a plan on the level plane. Nothing in that test is wired by hand; the only connection
+  between the parts is OSGi.
+
+The persistence service is a test implementation, because core ships no store — rrd4j and InfluxDB
+live in openhab-addons — but it is a real `QueryablePersistenceService` discovered through the real
+`PersistenceServiceRegistry`, which is the extension point an actual store plugs into. What is still
+unverified is the market feed itself, not the wiring.
+
+Writing it produced one finding worth stating plainly: **on a fresh framework an installed price
+source derives nothing.** Core ships no composition, so the coordinator reports
 `PRICE_COMPOSITION_FAILED` and `NO_SERIES_TO_DERIVE_FROM` rather than inventing a price. That is the
-intended contract, and "install a price source" is not by itself a working configuration.
+intended contract, but it means "install a price source" is not by itself a working configuration.
+It has its own test.
 
-What it does *not* cover is the front of the chain — it registers a synthetic source rather than
-driving the `series` bundle's Item-backed reader, so `Item → persistence → provider` has still never
-run in one process.
-
-Running it needs three things present in the local reactor, none of them obvious:
+Running the itests needs three things present in the local reactor, none of them obvious:
 
 ```
 mvn -pl bom/openhab-core-index,bom/runtime-index,bom/test-index install   # generates the bnd indexes
@@ -74,9 +81,11 @@ mvn -pl bundles/org.openhab.core.persistence install                      # the 
 mvn -pl itests/org.openhab.core.energy.tests -Pwith-bnd-resolver-resolve verify
 ```
 
-The resolver only sees bundles that have actually been **built in that checkout** — `local-index.xml`
+Two traps. The resolver only sees bundles **actually built in that checkout** — `local-index.xml`
 indexes the reactor's own output, so a bundle that exists in `~/.m2` but was never built there is
-invisible to it and resolution fails with a bare "missing requirement".
+invisible and resolution fails with a bare "missing requirement". And the index records each jar's
+checksum, so **rebuild the index after rebuilding any bundle** or the launch fails with
+"Invalid content checksum".
 
 ## Building
 
