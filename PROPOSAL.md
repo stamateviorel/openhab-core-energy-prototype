@@ -13,12 +13,22 @@ first stated it.
 ## What can be checked in ten minutes
 
 ```
-mvn -pl bom/openhab-core-index,bom/runtime-index,bom/test-index install
+# 1. the bundles the engine needs, then the engine itself
 mvn -pl bundles/org.openhab.core.persistence install
 mvn -pl bundles/org.openhab.core.energy,bundles/org.openhab.core.energy.series,\
 bundles/org.openhab.core.energy.forecast.store,bundles/org.openhab.core.energy.publish clean install
+
+# 2. the bnd indexes, AFTER the jars exist - they record each jar's checksum
+mvn -pl bom/openhab-core-index,bom/runtime-index,bom/test-index install
+
+# 3. the integration tests
 mvn -pl itests/org.openhab.core.energy.tests -Pwith-bnd-resolver-resolve verify
 ```
+
+The order matters. The indexes record a checksum per jar and only ever contain bundles **actually
+built in that checkout**, so generating them before the bundles - or rebuilding a bundle afterwards -
+fails with `Invalid content checksum` or a bare `missing requirement`. Verified end to end on
+2026-08-29: 601 unit tests and 7 integration tests, all green.
 
 | | |
 |---|---|

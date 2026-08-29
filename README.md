@@ -85,16 +85,17 @@ It has its own test.
 Running the itests needs three things present in the local reactor, none of them obvious:
 
 ```
-mvn -pl bom/openhab-core-index,bom/runtime-index,bom/test-index install   # generates the bnd indexes
 mvn -pl bundles/org.openhab.core.persistence install                      # the engine imports it
+mvn -pl bundles/org.openhab.core.energy,... clean install                 # build the jars first
+mvn -pl bom/openhab-core-index,bom/runtime-index,bom/test-index install   # then index them
 mvn -pl itests/org.openhab.core.energy.tests -Pwith-bnd-resolver-resolve verify
 ```
 
-Two traps. The resolver only sees bundles **actually built in that checkout** — `local-index.xml`
-indexes the reactor's own output, so a bundle that exists in `~/.m2` but was never built there is
-invisible and resolution fails with a bare "missing requirement". And the index records each jar's
-checksum, so **rebuild the index after rebuilding any bundle** or the launch fails with
-"Invalid content checksum".
+**That order is not optional.** The resolver only sees bundles **actually built in that checkout** —
+`local-index.xml` indexes the reactor's own output, so a bundle sitting in `~/.m2` that was never
+built there is invisible and resolution fails with a bare "missing requirement". The index also
+records each jar's checksum, so indexing before the jars exist, or rebuilding a bundle afterwards,
+fails with "Invalid content checksum".
 
 ## Building
 
