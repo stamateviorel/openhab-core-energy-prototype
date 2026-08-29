@@ -451,12 +451,19 @@ bundles may write" is the load-bearing fact of this stage, and it changed.
   persistence service, not against a live ENTSO-E binding.
 - **The chain now runs in one process.** Superseded on 2026-08-29 by
   `itests/org.openhab.core.energy.tests`, an OSGi integration test that starts all four bundles in a
-  real framework. **Five tests, and they establish what no unit test could**: the bundles resolve and
+  real framework. **Seven tests, and they establish what no unit test could**: the bundles resolve and
   reach ACTIVE, they find each other through the service registry, and
   `Item → persistence → provider → registry → coordinator → level plan` runs end to end — an Item's
   future prices in a persistence service, read by the `series` bundle's Item-backed source, composed
   by the registry in the engine bundle, installed as a plan on the level plane. Nothing in that test
   is wired by hand; the only connection between the parts is OSGi.
+
+  Two invariants are now checked against the running framework rather than against the source. The
+  engine is **not wired to `org.openhab.core.items.events` at all** — OSGi has given it no route to
+  the package that builds Item events, so there is no call it could make — while the publishing
+  companion *is* wired to exactly that package. The contrast is the point: this is a real boundary,
+  not an absence of code. And the companion's Items genuinely reach core's `ItemRegistry`, which
+  registering an `ItemProvider` does not by itself demonstrate.
 
   The persistence service is a test implementation, because core ships no store — rrd4j and InfluxDB
   live in openhab-addons — but it is a real `QueryablePersistenceService` discovered through the real

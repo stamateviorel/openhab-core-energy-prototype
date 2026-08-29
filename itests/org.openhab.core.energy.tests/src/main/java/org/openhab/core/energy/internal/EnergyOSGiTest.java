@@ -15,6 +15,7 @@ package org.openhab.core.energy.internal;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasItem;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -42,6 +43,7 @@ import org.openhab.core.energy.price.EnergyPriceUnits;
 import org.openhab.core.energy.price.PriceDirection;
 import org.openhab.core.energy.price.PriceRole;
 import org.openhab.core.items.Item;
+import org.openhab.core.items.ItemRegistry;
 import org.openhab.core.library.types.DecimalType;
 import org.openhab.core.persistence.FilterCriteria;
 import org.openhab.core.persistence.HistoricItem;
@@ -51,6 +53,9 @@ import org.openhab.core.test.java.JavaOSGiTest;
 import org.openhab.core.types.State;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.ServiceRegistration;
+import org.osgi.framework.namespace.PackageNamespace;
+import org.osgi.framework.wiring.BundleWire;
+import org.osgi.framework.wiring.BundleWiring;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
 
@@ -181,6 +186,51 @@ public class EnergyOSGiTest extends JavaOSGiTest {
         });
 
         assertThat(levelPlane.getPlan().size(), is(greaterThan(0)));
+    }
+
+    /**
+     * The no-write invariant, asserted against the running framework rather than against the source.
+     * <p>
+     * The engine is not merely disciplined about not writing to an Item - OSGi has not wired it to the package that
+     * builds Item events, so there is no call it could make. The publishing companion is wired to exactly that
+     * package, which is what makes the contrast meaningful: this is a real boundary, not an absence of code.
+     */
+    @Test
+    public void theEngineIsNotEvenWiredToThePackageThatWritesItems() {
+        assertThat("the engine is wired to the Item event package", wiredToItemEvents("org.openhab.core.energy"),
+                is(false));
+        assertThat("the publishing companion should be the bundle that may write",
+                wiredToItemEvents("org.openhab.core.energy.publish"), is(true));
+    }
+
+    /**
+     * The opt-in publishing companion actually contributes its Items to core's registry. Registering an
+     * {@code ItemProvider} is one thing; core picking it up is another, and only a framework can show the second.
+     */
+    @Test
+    public void thePublishingCompanionContributesItsItemsToTheRegistry() {
+        ItemRegistry items = getService(ItemRegistry.class);
+        assertThat(items, is(notNullValue()));
+
+        waitForAssert(() -> {
+            List<String> names = new ArrayList<>();
+            items.getAll().forEach(item -> names.add(item.getName()));
+            assertThat(names, hasItem("EnergyEngineStatus"));
+            assertThat(names, hasItem("EnergyCurrentLevel"));
+        });
+    }
+
+    private boolean wiredToItemEvents(String symbolicName) {
+        Bundle bundle = findBundle(symbolicName);
+        assertThat("bundle missing from the runtime: " + symbolicName, bundle, is(notNullValue()));
+        BundleWiring wiring = bundle.adapt(BundleWiring.class);
+        for (BundleWire wire : wiring.getRequiredWires(PackageNamespace.PACKAGE_NAMESPACE)) {
+            if ("org.openhab.core.items.events"
+                    .equals(wire.getCapability().getAttributes().get(PackageNamespace.PACKAGE_NAMESPACE))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void register(Object service, String interfaceName) {

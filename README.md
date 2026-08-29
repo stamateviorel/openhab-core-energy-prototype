@@ -26,7 +26,7 @@ it is, what can be checked in ten minutes, what it deliberately refuses to do, a
 | `org.openhab.core.energy.forecast.store` | persistence-layered forecast store | 24 |
 | `org.openhab.core.energy.publish` | Item and status publication | 16 |
 
-**601 unit tests plus 5 OSGi integration tests, 0 failures.** Checkstyle, PMD and SpotBugs report
+**601 unit tests plus 7 OSGi integration tests, 0 failures.** Checkstyle, PMD and SpotBugs report
 nothing on any of the four; javadoc is warning-free. Every dependency is an `openhab-core` artifact — nothing outside
 openHAB's default set, and no HTTP or WebSocket client anywhere, because the source SPI is
 pull-only and core fetches no energy data itself.
@@ -54,7 +54,7 @@ event is not a write.
 
 ## It runs
 
-`itests/org.openhab.core.energy.tests` starts all four bundles in a real OSGi framework. **Five
+`itests/org.openhab.core.energy.tests` starts all four bundles in a real OSGi framework. **Seven
 tests**, and they establish what no unit test can:
 
 - every bundle resolves and reaches `ACTIVE`
@@ -64,6 +64,12 @@ tests**, and they establish what no unit test can:
   Item-backed source reads them, the registry in the engine bundle composes them, and the result is
   installed as a plan on the level plane. Nothing in that test is wired by hand; the only connection
   between the parts is OSGi.
+- **the engine is not wired to `org.openhab.core.items.events` at all** — checked against the
+  running framework, not the source. OSGi has given it no route to the package that builds Item
+  events, while the publishing companion *is* wired to exactly that package. The contrast is the
+  point: a real boundary, not an absence of code.
+- **the companion's Items reach core's `ItemRegistry`** — registering an `ItemProvider` and core
+  actually picking it up are two different claims.
 
 The persistence service is a test implementation, because core ships no store — rrd4j and InfluxDB
 live in openhab-addons — but it is a real `QueryablePersistenceService` discovered through the real

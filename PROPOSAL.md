@@ -24,7 +24,7 @@ mvn -pl itests/org.openhab.core.energy.tests -Pwith-bnd-resolver-resolve verify
 |---|---|
 | Bundles | 4, all opt-in Karaf features; none in `openhab-core-base` |
 | Unit tests | 601, 0 failures |
-| OSGi integration tests | 5, 0 failures |
+| OSGi integration tests | 7, 0 failures |
 | Checkstyle / PMD / SpotBugs | 0 findings on all four |
 | Javadoc | 0 warnings |
 | Dependencies | every one an `openhab-core` artifact; nothing outside the default set |
@@ -38,8 +38,10 @@ until it ran.
 ## Three things it deliberately will not do
 
 1. **The engine cannot write to an Item.** `org.openhab.core.energy` does not import
-   `org.openhab.core.items.events` at all — no write path exists to remove, and a structural test
-   fails if one is added. Writing lives in companion bundles that are each their own opt-in feature.
+   `org.openhab.core.items.events` at all — no write path exists to remove, a structural test fails
+   if one is added, and an integration test confirms against the **running framework** that OSGi has
+   wired it no route to that package, while the publishing companion is wired to exactly that
+   package. Writing lives in companions that are each their own opt-in feature.
 2. **It fetches nothing.** Sources push in; there is no HTTP client in the tree. An existing price
    binding becomes a source without changing shape.
 3. **It invents no defaults.** On a fresh install with a price source present it derives *nothing*
