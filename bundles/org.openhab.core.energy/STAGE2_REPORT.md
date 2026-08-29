@@ -449,11 +449,23 @@ bundles may write" is the load-bearing fact of this stage, and it changed.
 - **Nothing has been verified against a real market feed.** Every price in every test is either the
   corpus fixture or a hand-built series. The generic provider has been exercised against a fake
   persistence service, not against a live ENTSO-E binding.
-- **No test spans two bundles.** The coordinator is driven by an in-process price source and the
-  generic provider is driven by a fake store; that the two meet is a property of OSGi service
-  registration and of the feature file, verified by `karaf:verify` and by reading, not by a test.
-  The chain "Item → persistence → provider → registry → coordinator → level plan" has never run in
-  one process.
+- **Two bundles now meet in one process; the Item end of the chain still does not.** Superseded in
+  part on 2026-08-29 by `itests/org.openhab.core.energy.tests`, an OSGi integration test that starts
+  all four bundles in a real framework and asserts that a source registered *only* through the
+  service registry, with its composition set *only* through ConfigAdmin, arrives as a level plan on
+  the level plane. Four tests, and they establish what no unit test could: the bundles resolve, reach
+  ACTIVE, and find each other.
+
+  What is still not covered is the front of the chain. The itest registers a synthetic
+  `EnergyPriceSource` rather than driving the `series` bundle's Item-backed reader, so
+  "Item → persistence → provider" has still never run. The half that was pure assumption — service
+  registration and configuration across bundle boundaries — is no longer assumed.
+
+  Running it also produced a finding worth stating plainly: on a fresh framework an installed price
+  source derives **nothing**, because core ships no composition. The coordinator reports
+  `PRICE_COMPOSITION_FAILED` and `NO_SERIES_TO_DERIVE_FROM` rather than inventing a price, which is
+  the intended contract — but it means "install a price source" is not by itself a working
+  configuration, and that had never been demonstrated end to end. It now has its own test.
 - **`RankedSlotsSelection` ignores the load curve** (§4.2), documented and defensible, but it does
   mean a shaped interruptible load gets a flat-ranked answer.
 
