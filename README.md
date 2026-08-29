@@ -14,6 +14,9 @@ lists are the finding.
 
 Context and discussion: [openhab-core#3478](https://github.com/openhab/openhab-core/issues/3478).
 
+**If you would have to maintain this, read [PROPOSAL.md](PROPOSAL.md) instead of this file** — what
+it is, what can be checked in ten minutes, what it deliberately refuses to do, and what is not done.
+
 ## What is here
 
 | Bundle | What it is | Tests |
