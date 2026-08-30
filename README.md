@@ -26,7 +26,7 @@ it is, what can be checked in ten minutes, what it deliberately refuses to do, a
 | `org.openhab.core.energy.forecast.store` | persistence-layered forecast store | 24 |
 | `org.openhab.core.energy.publish` | Item and status publication | 16 |
 
-**603 unit tests plus 7 OSGi integration tests, 0 failures.** Checkstyle, PMD and SpotBugs report
+**604 unit tests plus 7 OSGi integration tests, 0 failures.** Checkstyle, PMD and SpotBugs report
 nothing on any of the four; javadoc is warning-free. Every dependency is an `openhab-core` artifact — nothing outside
 openHAB's default set, and no HTTP or WebSocket client anywhere, because the source SPI is
 pull-only and core fetches no energy data itself.

@@ -266,4 +266,24 @@ public class WindowCurveAndSenseTest {
         assertThat(flipped.rankedIndices(), is(prices.worstRankedIndices()));
         assertThat(flipped.worstRankedIndices(), is(prices.rankedIndices()));
     }
+
+    /**
+     * Owner decision D38: two windows whose costs differ by less than any tariff expresses are a tie, and the earlier
+     * one takes it.
+     * <p>
+     * An exact tie was always safe - the incumbent keeps it - so the defect only shows when the *later* window comes
+     * out marginally cheaper through arithmetic rather than through price. Here the last hour is cheaper by a
+     * millionth of a millionth of a cent, which is noise, not money. Compared exactly that noise moves the load three
+     * hours; compared within the tolerance it does not.
+     */
+    @Test
+    public void aLaterWindowCheaperOnlyByNoiseDoesNotTakeTheTie() {
+        SlotSeries prices = SlotSeries.hourly(MIDNIGHT, 1.0, 1.0, 1.0, 1.0, 1.0 - 1e-12);
+
+        WindowSelection window = SelectionStrategy.consecutiveWindow().select(prices,
+                WindowRequest.ofDuration(Duration.ofHours(3)));
+
+        assertThat("noise in the last bits must not decide which hour a load runs in",
+                prices.slotAt(window.indices().get(0)).start(), is(MIDNIGHT));
+    }
 }

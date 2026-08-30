@@ -66,6 +66,14 @@ import org.openhab.core.energy.window.WindowSelection;
 @NonNullByDefault
 public class ConsecutiveWindowSelection implements SelectionStrategy {
 
+    /**
+     * How close two window figures must be to count as the same price, relative to their magnitude.
+     * <p>
+     * Sits far above the noise a different ordering of the same multiplications produces and far below any difference
+     * a real tariff expresses, so it separates arithmetic from money without a site having to think about either.
+     */
+    private static final double TIE_TOLERANCE = 1e-9;
+
     private final LeftRiemannWindowCost cost = new LeftRiemannWindowCost();
     private final boolean worst;
 
@@ -203,7 +211,28 @@ public class ConsecutiveWindowSelection implements SelectionStrategy {
      * @return {@code true} if the candidate beats the incumbent outright
      */
     private boolean wins(double candidate, double incumbent, SlotSeries series) {
+        if (tied(candidate, incumbent)) {
+            return false;
+        }
         return prefersHigher(series) ? candidate > incumbent : candidate < incumbent;
+    }
+
+    /**
+     * Whether two window figures are the same price to any meaning the tariff has.
+     * <p>
+     * Owner decision D38. Window figures are computed doubles, and two windows equal on paper can differ in the last
+     * bits through a different ordering of the same multiplications; comparing those exactly lets a rounding artefact
+     * decide which hour a load runs in. The tolerance is relative, because a figure's magnitude depends on the
+     * currency, the energy unit and the length of the window. It is the framework's and not the site's: a site cannot
+     * be asked what floating-point noise it is willing to tolerate.
+     *
+     * @param first one figure
+     * @param second the other
+     * @return {@code true} where the difference is arithmetic noise rather than a price difference
+     */
+    private static boolean tied(double first, double second) {
+        double magnitude = Math.max(1.0, Math.max(Math.abs(first), Math.abs(second)));
+        return Math.abs(first - second) <= TIE_TOLERANCE * magnitude;
     }
 
     private static Duration min(Duration first, Duration second) {

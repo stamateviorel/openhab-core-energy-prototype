@@ -28,12 +28,12 @@ mvn -pl itests/org.openhab.core.energy.tests -Pwith-bnd-resolver-resolve verify
 The order matters. The indexes record a checksum per jar and only ever contain bundles **actually
 built in that checkout**, so generating them before the bundles - or rebuilding a bundle afterwards -
 fails with `Invalid content checksum` or a bare `missing requirement`. Verified end to end on
-2026-08-30: 603 unit tests and 7 integration tests, all green.
+2026-08-30: 604 unit tests and 7 integration tests, all green.
 
 | | |
 |---|---|
 | Bundles | 4, all opt-in Karaf features; none in `openhab-core-base` |
-| Unit tests | 603, 0 failures |
+| Unit tests | 604, 0 failures |
 | OSGi integration tests | 7, 0 failures |
 | Checkstyle / PMD / SpotBugs | 0 findings on all four |
 | Javadoc | 0 warnings |
