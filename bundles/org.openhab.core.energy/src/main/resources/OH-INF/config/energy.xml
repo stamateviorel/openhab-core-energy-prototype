@@ -197,17 +197,18 @@
 			<description>What happens when the selected objective has no series to rank on, for example the carbon
 				objective on a
 				site
-				with no carbon source installed. This question is open in the specification: all three answers are
-				implemented
-				and
-				none of them is a verdict.</description>
+				with no carbon source installed. The specification leaves this open; owner decision D33 settled it
+				for this
+				implementation. An objective that cannot be served is not offered at all, rather than
+				silently answered with a
+				different one.</description>
 			<options>
 				<option value="fall-back">Optimize for cost instead, and report it</option>
 				<option value="hide">Do not offer an objective whose data is missing</option>
 				<option value="refuse">Plan nothing rather than optimize for something else</option>
 			</options>
 			<limitToOptions>true</limitToOptions>
-			<default>fall-back</default>
+			<default>hide</default>
 			<advanced>true</advanced>
 		</parameter>
 		<parameter name="exportCarbonCredit" type="text">

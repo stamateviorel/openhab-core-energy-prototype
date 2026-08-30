@@ -159,11 +159,11 @@ record ObjectivePlaneConfiguration(String objectiveId, AbsentDataPlanePolicy abs
     }
 
     private static AbsentDataPlanePolicy policy(Map<String, Object> properties, Consumer<String> rejected) {
-        String configured = text(properties, CONFIG_ABSENT_DATA_PLANE, AbsentDataPlanePolicy.FALL_BACK_TO_COST.id());
+        String configured = text(properties, CONFIG_ABSENT_DATA_PLANE, AbsentDataPlanePolicy.HIDE_UNAVAILABLE.id());
         return AbsentDataPlanePolicy.parse(configured).orElseGet(() -> {
             rejected.accept("'" + CONFIG_ABSENT_DATA_PLANE + "' is none of the known policies but was '" + configured
-                    + "'; falling back to '" + AbsentDataPlanePolicy.FALL_BACK_TO_COST.id() + "'");
-            return AbsentDataPlanePolicy.FALL_BACK_TO_COST;
+                    + "'; falling back to '" + AbsentDataPlanePolicy.HIDE_UNAVAILABLE.id() + "'");
+            return AbsentDataPlanePolicy.HIDE_UNAVAILABLE;
         });
     }
 

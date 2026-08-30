@@ -30,13 +30,15 @@
 		</parameter>
 		<parameter name="writePolicy" type="text">
 			<label>Write Policy</label>
-			<description>What happens when a forecast refresh lands on an entry a cap was written onto. This is
-				deliberately
-				unset: the requirement says a refresh replaces what was there, and the cap scenario says
-				those entries hold the
-				capped value, and nothing in the specification says which wins. Left unset, the
-				newest write wins and the overwritten
-				cap is reported.</description>
+			<description>What happens when a forecast refresh lands on an entry a cap was written onto. The
+				requirement says a
+				refresh replaces what was there and the cap scenario says those entries hold the
+				capped value; nothing in the
+				specification says which wins, so owner decision D32 settled it. Caps are
+				kept as a series of their own and applied
+				when the prediction is read, which leaves the refreshed
+				forecast intact underneath and is the only one of the four
+				that survives a restart.</description>
 			<options>
 				<option value="fresh-overwrites-old">Newest write wins, and say so</option>
 				<option value="reapply-caps">Put the cap back after every refresh</option>
@@ -44,6 +46,7 @@
 				<option value="cap-at-read-time">Keep caps in their own series and apply them when reading</option>
 			</options>
 			<limitToOptions>true</limitToOptions>
+			<default>cap-at-read-time</default>
 		</parameter>
 		<parameter name="layerPrecedence" type="text" multiple="true">
 			<label>Layer Order</label>

@@ -57,7 +57,8 @@ public class AbsentDataPlaneTest {
      */
     @Test
     public void fallingBackToCostKeepsPlanningAndReportsTheDegradation() {
-        ObjectivePlane plane = ObjectiveFixtures.planeWithBuiltIns(Map.of("objective", CarbonObjective.ID));
+        ObjectivePlane plane = ObjectiveFixtures
+                .planeWithBuiltIns(Map.of("objective", CarbonObjective.ID, "absentDataPlane", "fall-back"));
 
         ObjectiveResolution resolution = plane.resolve(siteWithoutCarbon());
 
@@ -115,7 +116,8 @@ public class AbsentDataPlaneTest {
     public void theThreeOptionsAreThreeDifferentBehaviours() {
         ObjectiveInputs inputs = siteWithoutCarbon();
 
-        ObjectiveResolution fallBack = ObjectiveFixtures.planeWithBuiltIns(Map.of("objective", CarbonObjective.ID))
+        ObjectiveResolution fallBack = ObjectiveFixtures
+                .planeWithBuiltIns(Map.of("objective", CarbonObjective.ID, "absentDataPlane", "fall-back"))
                 .resolve(inputs);
         ObjectivePlane hiding = ObjectiveFixtures
                 .planeWithBuiltIns(Map.of("objective", CarbonObjective.ID, "absentDataPlane", "hide"));
@@ -126,9 +128,9 @@ public class AbsentDataPlaneTest {
         assertThat(fallBack.ranking().isPresent(), is(true));
         assertThat(refused.ranking().isPresent(), is(false));
         assertThat(hiding.offeredObjectives(inputs), hasSize(1));
-        assertThat(
-                ObjectiveFixtures.planeWithBuiltIns(Map.of("objective", CarbonObjective.ID)).offeredObjectives(inputs),
-                hasSize(3));
+        assertThat(ObjectiveFixtures
+                .planeWithBuiltIns(Map.of("objective", CarbonObjective.ID, "absentDataPlane", "fall-back"))
+                .offeredObjectives(inputs), hasSize(3));
     }
 
     /**
@@ -177,9 +179,22 @@ public class AbsentDataPlaneTest {
      * discipline the engine and the level plane already follow.
      */
     @Test
-    public void anUnreadablePolicyFallsBackInsteadOfFailing() {
+    public void anUnreadablePolicyUsesTheShippedDefaultInsteadOfFailing() {
         ObjectivePlane plane = ObjectiveFixtures.planeWithBuiltIns(Map.of("absentDataPlane", "whatever"));
 
-        assertThat(plane.absentDataPlanePolicy(), is(AbsentDataPlanePolicy.FALL_BACK_TO_COST));
+        assertThat(plane.absentDataPlanePolicy(), is(AbsentDataPlanePolicy.HIDE_UNAVAILABLE));
+    }
+
+    /**
+     * Owner decision D33: a site that configures nothing does not get an objective it cannot serve. Pinned here
+     * because it is a shipped default, and a shipped default that nothing asserts is how the marketZone defect in
+     * stage 2 got in.
+     */
+    @Test
+    public void aSiteThatConfiguresNothingIsNotOfferedAnObjectiveItCannotServe() {
+        ObjectivePlane plane = ObjectiveFixtures.planeWithBuiltIns(Map.of());
+
+        assertThat(plane.absentDataPlanePolicy(), is(AbsentDataPlanePolicy.HIDE_UNAVAILABLE));
+        assertThat(plane.offeredObjectives(siteWithoutCarbon()), hasSize(1));
     }
 }

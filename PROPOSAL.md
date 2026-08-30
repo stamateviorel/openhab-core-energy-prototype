@@ -28,12 +28,12 @@ mvn -pl itests/org.openhab.core.energy.tests -Pwith-bnd-resolver-resolve verify
 The order matters. The indexes record a checksum per jar and only ever contain bundles **actually
 built in that checkout**, so generating them before the bundles - or rebuilding a bundle afterwards -
 fails with `Invalid content checksum` or a bare `missing requirement`. Verified end to end on
-2026-08-29: 601 unit tests and 7 integration tests, all green.
+2026-08-30: 603 unit tests and 7 integration tests, all green.
 
 | | |
 |---|---|
 | Bundles | 4, all opt-in Karaf features; none in `openhab-core-base` |
-| Unit tests | 601, 0 failures |
+| Unit tests | 603, 0 failures |
 | OSGi integration tests | 7, 0 failures |
 | Checkstyle / PMD / SpotBugs | 0 findings on all four |
 | Javadoc | 0 warnings |
@@ -54,9 +54,11 @@ until it ran.
    package. Writing lives in companions that are each their own opt-in feature.
 2. **It fetches nothing.** Sources push in; there is no HTTP client in the tree. An existing price
    binding becomes a source without changing shape.
-3. **It invents no defaults.** On a fresh install with a price source present it derives *nothing*
-   and reports `PRICE_COMPOSITION_FAILED`, because core ships no composition. Installing a source is
-   not by itself a working configuration, and that is on purpose.
+3. **It invents no defaults where a guess would be acted on.** On a fresh install with a price
+   source present it derives *nothing* and reports `PRICE_COMPOSITION_FAILED`, because core ships no
+   composition. It will not assume a currency or a market zone either — a guessed denomination gets
+   printed onto a page somebody acts on. Where a default *is* shipped it is a recorded decision with
+   its alternatives kept (D32, D33), never a convenience.
 
 ## What is not done, stated plainly
 

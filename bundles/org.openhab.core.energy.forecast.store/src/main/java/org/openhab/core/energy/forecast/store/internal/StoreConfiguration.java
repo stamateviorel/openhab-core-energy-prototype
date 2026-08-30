@@ -32,15 +32,16 @@ import org.openhab.core.energy.forecast.SeriesLayer;
 /**
  * What a site says about where its prediction series live and how their writers get on.
  * <p>
- * <strong>{@code writePolicy} has no default on purpose.</strong> It is the corpus's open question - what happens when
- * a refresh lands on a capped entry - and the four values are the three options its design section frames plus the
- * requirement's own literal words. A site that chooses nothing gets the literal words and a reported condition, which
- * is the one behaviour that neither invents an answer nor hides the collision.
+ * <strong>{@code writePolicy} defaults to {@link LayeredWritePolicy#CAP_COMPOSED_AT_READ_TIME}</strong> on owner
+ * decision D32. The corpus asks what happens when a refresh lands on a capped entry and frames three options without
+ * choosing; the four values here are those three plus the requirement's own literal words. Keeping caps in a series of
+ * their own and composing them as the prediction is read is the only one of the four that survives a restart, because
+ * nothing about it depends on remembering who wrote what.
  *
  * @param persistenceServiceId which persistence service holds the prediction series, or {@code null} for the default
  * @param seriesItems which Item carries which role's prediction series
  * @param capItems which Item carries the constraint series of a prediction Item
- * @param writePolicy how a collision between two layers resolves, or {@code null} where the site chose nothing
+ * @param writePolicy how a collision between two layers resolves
  * @param layerPrecedence the rank of each layer, used only by the writer-precedence policy
  *
  * @author Stamate Viorel - Initial contribution
@@ -77,7 +78,7 @@ record StoreConfiguration(@Nullable String persistenceServiceId, Map<ForecastRol
      * @return the default configuration
      */
     static StoreConfiguration defaults() {
-        return new StoreConfiguration(null, Map.of(), Map.of(), null, Map.of());
+        return new StoreConfiguration(null, Map.of(), Map.of(), LayeredWritePolicy.CAP_COMPOSED_AT_READ_TIME, Map.of());
     }
 
     /**
@@ -108,16 +109,15 @@ record StoreConfiguration(@Nullable String persistenceServiceId, Map<ForecastRol
             caps.put(parts[0], parts[1]);
         }
 
-        @Nullable
-        LayeredWritePolicy policy = null;
+        LayeredWritePolicy policy = LayeredWritePolicy.CAP_COMPOSED_AT_READ_TIME;
         @Nullable
         String declaredPolicy = text(properties.get(CONFIG_WRITE_POLICY));
         if (declaredPolicy != null) {
-            policy = LayeredWritePolicy.fromId(declaredPolicy).orElse(null);
-            if (policy == null) {
-                rejected.accept("unknown write policy '" + declaredPolicy
-                        + "'; treating the site as having chosen none, which follows the requirement literally");
-            }
+            policy = LayeredWritePolicy.fromId(declaredPolicy).orElseGet(() -> {
+                rejected.accept("unknown write policy '" + declaredPolicy + "'; using '"
+                        + LayeredWritePolicy.CAP_COMPOSED_AT_READ_TIME.id() + "'");
+                return LayeredWritePolicy.CAP_COMPOSED_AT_READ_TIME;
+            });
         }
 
         Map<SeriesLayer, Integer> precedence = new EnumMap<>(SeriesLayer.class);

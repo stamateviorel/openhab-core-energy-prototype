@@ -12,6 +12,7 @@
  */
 package org.openhab.core.energy.forecast.store.internal;
 
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
@@ -79,12 +80,13 @@ public class PersistenceLayeredStoreTest {
     }
 
     /**
-     * _Hard generation cap written into today_: the cap is written straight onto the affected entries, which is what
-     * makes it visible to everything that reads the prediction.
+     * _Hard generation cap written into today_: under the literal-words policy the cap is written straight onto the
+     * affected entries, which is what makes it visible to everything that reads the prediction. Asked for explicitly,
+     * because owner decision D32 made keeping caps apart the shipped default.
      */
     @Test
     public void aCapIsWrittenOntoTheAffectedEntriesOfToday() {
-        PersistenceLayeredStore store = store(Map.of());
+        PersistenceLayeredStore store = store(Map.of("writePolicy", "fresh-overwrites-old"));
         store.apply(ITEM, SeriesLayer.FORECAST,
                 StoreFixtures.hourlyFrom(ForecastRole.SOLAR_PRODUCTION, Units.WATT, 11, 4000, 4200, 4100));
 
@@ -98,13 +100,13 @@ public class PersistenceLayeredStoreTest {
     }
 
     /**
-     * <strong>The open collision, end to end.</strong> A site that has chosen no policy gets the requirement's own
-     * words - the newest write wins - and the report says a cap was overwritten. Neither the store nor this test says
-     * that is the right answer.
+     * <strong>The collision, end to end.</strong> Under the requirement's own literal words the newest write wins and
+     * the report says a cap was overwritten. This is no longer what an unconfigured site gets - D32 chose otherwise -
+     * so the policy is named here rather than inherited.
      */
     @Test
     public void aRefreshAfterACapErasesItAndTheReportSaysSo() {
-        PersistenceLayeredStore store = store(Map.of());
+        PersistenceLayeredStore store = store(Map.of("writePolicy", "fresh-overwrites-old"));
         store.apply(ITEM, SeriesLayer.CAP,
                 StoreFixtures.hourlyFrom(ForecastRole.SOLAR_PRODUCTION, Units.WATT, 12, 2500));
 
@@ -113,8 +115,7 @@ public class PersistenceLayeredStoreTest {
 
         assertThat(watts(hour(12)), is(4200.0));
         assertThat(report.collisions(), contains(hour(12)));
-        assertThat(report.conditions(), hasItems(ForecastPlaneCondition.CAP_OVERWRITTEN_BY_REFRESH,
-                ForecastPlaneCondition.WRITE_POLICY_UNCONFIGURED));
+        assertThat(report.conditions(), hasItem(ForecastPlaneCondition.CAP_OVERWRITTEN_BY_REFRESH));
     }
 
     /**
@@ -175,6 +176,23 @@ public class PersistenceLayeredStoreTest {
         assertThat(effective.valueAt(hour(11)).getAsDouble(), is(4000.0));
         assertThat("an hour the cap does not cover is untouched", effective.valueAt(hour(14)).getAsDouble(),
                 is(3000.0));
+    }
+
+    /**
+     * Owner decision D32: a site that configures nothing keeps caps apart, so a refresh cannot erase one. Pinned
+     * because it is a shipped default, and because it carries a consequence worth seeing - a site that writes caps
+     * without naming a series to keep them in is now told so, by the test below.
+     */
+    @Test
+    public void aSiteThatConfiguresNothingKeepsCapsApart() {
+        PersistenceLayeredStore store = store(Map.of("capSeries", List.of(ITEM + "=" + CAP_ITEM)));
+        store.apply(ITEM, SeriesLayer.CAP,
+                StoreFixtures.hourlyFrom(ForecastRole.SOLAR_PRODUCTION, Units.WATT, 12, 2500));
+
+        LayeredWriteReport report = store.apply(ITEM, SeriesLayer.FORECAST,
+                StoreFixtures.hourlyFrom(ForecastRole.SOLAR_PRODUCTION, Units.WATT, 12, 4200));
+
+        assertThat(report.conditions(), not(hasItem(ForecastPlaneCondition.CAP_OVERWRITTEN_BY_REFRESH)));
     }
 
     /**
