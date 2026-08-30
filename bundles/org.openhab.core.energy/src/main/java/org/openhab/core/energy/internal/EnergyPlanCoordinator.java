@@ -146,7 +146,7 @@ public class EnergyPlanCoordinator {
     private final @Nullable EnergyConfigStatus configStatus;
 
     private volatile @Nullable Duration refreshInterval;
-    private volatile boolean surplusForecastEnabled;
+    private volatile @Nullable Boolean surplusForecast;
     private volatile Set<PlanDerivationCondition> conditions = Set.of();
     private volatile @Nullable ScheduledFuture<?> refreshHandle;
 
@@ -258,11 +258,9 @@ public class EnergyPlanCoordinator {
 
         ObjectiveInputs inputs = ObjectiveInputs.fromPrices(consumption.get(),
                 priceRegistry.feedInPrice().orElse(null));
-        if (surplusForecastEnabled) {
-            Optional<SlotSeries> surplus = surplusForecast(found);
-            if (surplus.isPresent()) {
-                inputs = inputs.withSurplusForecast(surplus.get());
-            }
+        Optional<SlotSeries> surplus = resolveSurplusForecast(found);
+        if (surplus.isPresent()) {
+            inputs = inputs.withSurplusForecast(surplus.get());
         }
         inputs = objectivePlane.withResolvedCarbon(inputs);
 
@@ -308,6 +306,37 @@ public class EnergyPlanCoordinator {
      * @param found the conditions of this run, added to
      * @return the surplus series in watts, or empty when nothing forecasts production
      */
+    /**
+     * Decides whether a surplus forecast is used this derivation, under owner decision D39.
+     * <p>
+     * Unset is the automatic case and the shipped behaviour: the forecast is used where the house's own demand can be
+     * netted out of the production figure, and withheld where it cannot, because a production forecast presented as
+     * surplus schedules a load into hours the house quietly eats first. A site that wants the upper bound regardless
+     * sets the flag true, and one that wants the feature off sets it false.
+     *
+     * @param found the conditions this derivation reports
+     * @return the series to rank a deferrable load against, or empty where none is used
+     */
+    private Optional<SlotSeries> resolveSurplusForecast(Set<PlanDerivationCondition> found) {
+        Boolean declared = surplusForecast;
+        if (Boolean.FALSE.equals(declared)) {
+            return Optional.empty();
+        }
+        Set<PlanDerivationCondition> assembling = EnumSet.noneOf(PlanDerivationCondition.class);
+        Optional<SlotSeries> assembled = surplusForecast(assembling);
+        if (assembled.isEmpty()) {
+            found.addAll(assembling);
+            return Optional.empty();
+        }
+        if (!Boolean.TRUE.equals(declared)
+                && assembling.contains(PlanDerivationCondition.SURPLUS_FORECAST_IS_PRODUCTION_ONLY)) {
+            found.add(PlanDerivationCondition.SURPLUS_FORECAST_WITHHELD);
+            return Optional.empty();
+        }
+        found.addAll(assembling);
+        return assembled;
+    }
+
     private Optional<SlotSeries> surplusForecast(Set<PlanDerivationCondition> found) {
         Optional<ForecastSeries> solar = forecastRegistry.getSeries(ForecastRole.SOLAR_PRODUCTION);
         if (solar.isEmpty()) {
@@ -412,6 +441,10 @@ public class EnergyPlanCoordinator {
             case SURPLUS_FORECAST_UNALIGNED ->
                 "the production and demand forecasts do not share slot boundaries, so they were not netted; nothing "
                         + "is resampled here";
+            case SURPLUS_FORECAST_WITHHELD ->
+                "a solar forecast is installed but nothing predicts this house's own demand, so no surplus series was "
+                        + "used at all rather than one that is really the roof figure; set the surplus forecast on "
+                        + "explicitly to use it anyway";
             case REFRESH_INTERVAL_UNCONFIGURED ->
                 "no refresh interval is set, so new prices published by an already-installed source are not picked "
                         + "up until the configuration changes";
@@ -420,7 +453,9 @@ public class EnergyPlanCoordinator {
 
     private void applyConfiguration(Map<String, Object> properties) {
         refreshInterval = readInterval(properties.get(CONFIG_REFRESH_INTERVAL));
-        surplusForecastEnabled = Boolean.parseBoolean(String.valueOf(properties.get(CONFIG_SURPLUS_FORECAST)));
+        Object declared = properties.get(CONFIG_SURPLUS_FORECAST);
+        surplusForecast = declared == null || String.valueOf(declared).isBlank() ? null
+                : Boolean.valueOf(Boolean.parseBoolean(String.valueOf(declared)));
         scheduleRefresh();
         derive();
     }

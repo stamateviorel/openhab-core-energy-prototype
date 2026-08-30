@@ -201,6 +201,78 @@ public class EnergyPlanCoordinatorTest {
     }
 
     /**
+     * Owner decision D39: left alone, the surplus forecast turns itself on where the figure means something and stays
+     * off where it would be the roof figure under another name.
+     * <p>
+     * A production forecast presented as surplus schedules a load into hours the house quietly eats first, so on a
+     * site with nothing predicting its own demand nothing is handed to the objectives at all - and the reason is
+     * reported rather than left as silence.
+     */
+    @Test
+    public void anUnconfiguredSiteWithNoDemandForecastWithholdsTheSurplusForecast() {
+        Harness harness = new Harness();
+        harness.withSpotPrices(10, 20, 30);
+        harness.withSolarForecast(0, 2000, 4000);
+
+        harness.coordinator().derive();
+
+        assertThat(harness.coordinator().getConditions(), hasItem(PlanDerivationCondition.SURPLUS_FORECAST_WITHHELD));
+        assertThat(harness.coordinator().getConditions(),
+                not(hasItem(PlanDerivationCondition.SURPLUS_FORECAST_IS_PRODUCTION_ONLY)));
+    }
+
+    /**
+     * The same site once something does predict its demand: the feature is on, without anyone having switched it on.
+     */
+    @Test
+    public void anUnconfiguredSiteWithADemandForecastUsesTheSurplusForecast() {
+        Harness harness = new Harness();
+        harness.withSpotPrices(10, 20, 30);
+        harness.withSolarForecast(0, 2000, 4000);
+        harness.withHeatingDemand(Duration.ofHours(1), 1, 1, 1);
+
+        harness.coordinator().derive();
+
+        assertThat(harness.coordinator().getConditions(),
+                not(hasItem(PlanDerivationCondition.SURPLUS_FORECAST_WITHHELD)));
+    }
+
+    /**
+     * A site that wants the upper bound anyway still gets it, and still gets told what it is. D39 changed what an
+     * unconfigured site does, not what an explicit one can ask for.
+     */
+    @Test
+    public void askingForTheSurplusForecastExplicitlyStillGivesTheUpperBound() {
+        Harness harness = new Harness(Map.of("surplusForecast", "true"));
+        harness.withSpotPrices(10, 20, 30);
+        harness.withSolarForecast(0, 2000, 4000);
+
+        harness.coordinator().derive();
+
+        assertThat(harness.coordinator().getConditions(),
+                hasItem(PlanDerivationCondition.SURPLUS_FORECAST_IS_PRODUCTION_ONLY));
+        assertThat(harness.coordinator().getConditions(),
+                not(hasItem(PlanDerivationCondition.SURPLUS_FORECAST_WITHHELD)));
+    }
+
+    /**
+     * And a site that switched it off gets neither the series nor a condition about it.
+     */
+    @Test
+    public void switchingTheSurplusForecastOffReportsNothingAboutIt() {
+        Harness harness = new Harness(Map.of("surplusForecast", "false"));
+        harness.withSpotPrices(10, 20, 30);
+        harness.withSolarForecast(0, 2000, 4000);
+
+        harness.coordinator().derive();
+
+        assertThat(harness.coordinator().getConditions(),
+                not(hasItem(PlanDerivationCondition.SURPLUS_FORECAST_WITHHELD)));
+        assertThat(harness.coordinator().getConditions(),
+                not(hasItem(PlanDerivationCondition.SURPLUS_FORECAST_IS_PRODUCTION_ONLY)));
+    }
+
+    /**
      * A demand forecast whose slots do not line up with the solar forecast is left alone rather than resampled, and
      * the mismatch is reported.
      * <p>

@@ -81,6 +81,15 @@ public enum PlanDerivationCondition {
     SURPLUS_FORECAST_UNALIGNED,
 
     /**
+     * A surplus forecast could have been assembled but was not used, because nothing predicts the house's own demand
+     * and it would therefore have been the production forecast under another name.
+     * <p>
+     * Owner decision D39: the feature turns itself on where the figure means something and stays off where it would
+     * over-promise. A site that wants the upper bound anyway sets {@code surplusForecast} explicitly.
+     */
+    SURPLUS_FORECAST_WITHHELD,
+
+    /**
      * No refresh interval is configured, so the plan is re-derived only when something observable changes - a
      * configuration edit, or a source appearing or disappearing - and not when an already-installed source quietly
      * publishes new values.
