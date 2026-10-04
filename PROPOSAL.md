@@ -12,28 +12,55 @@ first stated it.
 
 ## What can be checked in ten minutes
 
+These bundles are written against `openhab-core` and live inside its reactor; this repository holds
+them on their own so they can be read without one. So the first step is putting them back, and **the
+step that is easy to miss is registering them as modules** - without it Maven reports that the paths
+do not exist.
+
 ```
-# 1. the bundles the engine needs, then the engine itself
-mvn -pl bundles/org.openhab.core.persistence install
+# 1. a core checkout to build them in
+git clone --depth 1 https://github.com/openhab/openhab-core.git
+cp -r <this repo>/bundles/org.openhab.core.energy*     openhab-core/bundles/
+cp -r <this repo>/itests/org.openhab.core.energy.tests openhab-core/itests/
+
+# 2. register the four bundles in openhab-core/bundles/pom.xml as <module> entries:
+#      org.openhab.core.energy
+#      org.openhab.core.energy.series
+#      org.openhab.core.energy.forecast.store
+#      org.openhab.core.energy.publish
+
+# 3. the bundles themselves, from the openhab-core root
+cd openhab-core
 mvn -pl bundles/org.openhab.core.energy,bundles/org.openhab.core.energy.series,\
 bundles/org.openhab.core.energy.forecast.store,bundles/org.openhab.core.energy.publish clean install
 
-# 2. the bnd indexes, AFTER the jars exist - they record each jar's checksum
+# 4. the bnd indexes, AFTER the jars exist - they record each jar's checksum
+mvn -pl bundles/org.openhab.core.persistence install
 mvn -pl bom/openhab-core-index,bom/runtime-index,bom/test-index install
 
-# 3. the integration tests
+# 5. the integration tests
 mvn -pl itests/org.openhab.core.energy.tests -Pwith-bnd-resolver-resolve verify
 ```
 
-The order matters. The indexes record a checksum per jar and only ever contain bundles **actually
-built in that checkout**, so generating them before the bundles - or rebuilding a bundle afterwards -
-fails with `Invalid content checksum` or a bare `missing requirement`. Verified end to end on
-2026-08-30: 608 unit tests and 7 integration tests, all green.
+The order matters from step 3 onwards. The indexes record a checksum per jar and only ever contain
+bundles **actually built in that checkout**, so generating them before the bundles - or rebuilding a
+bundle afterwards - fails with `Invalid content checksum` or a bare `missing requirement`.
+
+Steps 1 to 3 were re-run from nothing on 2026-10-04 against `openhab-core` at `04764dc`, which is
+current `main` rather than the branch these were written on: **628 unit tests, 0 failures**, with
+checkstyle, PMD, SpotBugs and spotless clean. They were 608 at the August freeze; the capacity-tariff
+package added twenty.
+
+**An earlier version of this section gave commands that could not work against this repository.**
+They assumed the core reactor was already around them - referring to `bom/` and to
+`bundles/org.openhab.core.persistence`, neither of which is here - and omitted the module
+registration entirely. Anyone who tried it hit an error inside the first minute. That is fixed
+above, and the sequence is the one actually run on the date given.
 
 | | |
 |---|---|
 | Bundles | 4, all opt-in Karaf features; none in `openhab-core-base` |
-| Unit tests | 608, 0 failures |
+| Unit tests | 628, 0 failures |
 | OSGi integration tests | 7, 0 failures |
 | Checkstyle / PMD / SpotBugs | 0 findings on all four |
 | Javadoc | 0 warnings |
